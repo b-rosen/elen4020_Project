@@ -1,9 +1,11 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 9.00
-# Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tpch", "tpch.vcproj", "{659CDC00-AE59-4839-B79E-93A846C8FDA2}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2043
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dbgen", "tpch.vcxproj", "{659CDC00-AE59-4839-B79E-93A846C8FDA2}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qgen", "qgen.vcproj", "{9BAF8942-2DFD-4BD1-B5ED-DBDDF0169E22}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "qgen", "qgen.vcxproj", "{9BAF8942-2DFD-4BD1-B5ED-DBDDF0169E22}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,5 +24,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {27C8634A-B255-4C2C-AFD8-68981D0289EC}
 	EndGlobalSection
 EndGlobal
