@@ -1,10 +1,50 @@
-#include "mpi.h"
+// #include "mpi.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 int main( int argc, char *argv[] )
 {
-    int provided, claimed;
+  FILE *file;
+  char *line = NULL;
+  size_t len = 0;
+  int pipeChar = 124;
 
+  file = fopen("2.17.3/ref_data/1/customer.tbl.1", "rb");
+
+  if (file == NULL)
+        exit(1);
+  while (getline(&line, &len, file) != -1) {
+    // printf("%s\n", line);
+    int startIndex = 0;
+    int endIndex = 0;
+    int colNum = 0;
+    do {
+      if (line[endIndex] == pipeChar) {
+        if (startIndex != 0 )
+        {
+          printf("Found in col %i: %.*s\n", colNum, (endIndex - startIndex) - 1, line + startIndex + 1);
+        }
+        else
+        {
+          printf("Found in col %i: %.*s\n", colNum, endIndex - startIndex, line + startIndex);
+        }
+        colNum++;
+        startIndex = endIndex;
+        // strcpy(input, "");
+      }
+      else {
+        // strcat(input, line[index]);
+        // printf("%s\n", &line[index]);
+      }
+      endIndex++;
+    } while(strcmp(&line[endIndex], "\n") != 0);
+    printf("\n");
+  }
+
+  free(line);
+  fclose(file);
+  return 0;
 /*** Select one of the following
     MPI_Init_thread( 0, 0, MPI_THREAD_SINGLE, &provided );
     MPI_Init_thread( 0, 0, MPI_THREAD_FUNNELED, &provided );
@@ -12,9 +52,10 @@ int main( int argc, char *argv[] )
     MPI_Init_thread( 0, 0, MPI_THREAD_MULTIPLE, &provided );
 ***/
 
-    MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided );
-    MPI_Query_thread( &claimed );
-        printf( "Query thread level= %d  Init_thread level= %d\n", claimed, provided );
+    // MPI_Init_thread(0, 0, MPI_THREAD_MULTIPLE, &provided );
+    // MPI_Query_thread( &claimed );
+    //     printf( "Query thread level= %d  Init_thread level= %d\n", claimed, provided );
+    //
+    // MPI_Finalize();
 
-    MPI_Finalize();
 }
