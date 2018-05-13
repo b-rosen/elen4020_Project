@@ -5,21 +5,12 @@
 #include <string.h>
 #include <glib.h>
 
-char *outputFileName = "output.tbl";
+char *outputFileName;
 FILE *outputFile;
 
-void printVal(gpointer data)
-{
-  printf("%s, ", data);
+void destroy(gpointer key, gpointer value, gpointer data) {
+ g_slist_free(value);
 }
-
-void print(gpointer key, gpointer value, gpointer data)
-{
- printf("Here are some cities in %s: ", key);
- g_slist_foreach((GSList*)value, (GFunc)printVal, NULL);
- printf("\n\n");
-}
-
 
 void SearchHashTable(GHashTable* hashTable, char* colContent, char* lineContent, int hashColumn)
 {
@@ -27,40 +18,33 @@ void SearchHashTable(GHashTable* hashTable, char* colContent, char* lineContent,
   if (lines == NULL)
     return;
 
-  while (lines->next != NULL)
+  while (lines != NULL)
   {
-    printf("%s", strtok(lineContent, "\n"));
+    fprintf(outputFile, "%s", strtok(lineContent, "\n"));
     // ADD check for column being equal
     // Remove column from print
     int colIndex = 0;
     // char *secondFileLine = NULL;
-    char *secondFileLine = "hello";
-    char *secondColContent = strtok(secondFileLine, "|");
-    gboolean correctCol = TRUE;
+    char *secondFileLine = strdup(lines->data);
+    char *secondColContent = strtok(secondFileLine, "|\n");
+    // gboolean correctCol = TRUE;
     while (secondColContent != NULL)
     {
-      if (colIndex == hashColumn)
+      if (colIndex != hashColumn)
       {
-        if (strcmp(colContent, secondColContent) == 0)
-        {
-          secondColContent = strtok(NULL, "|");
-          colIndex++;
-          continue;
-        }
-        else {
-          correctCol = FALSE;
-          break;
-        }
+        fprintf(outputFile, "%s|", secondColContent);
       }
       // strcat(secondFileLine, secondColContent);
       // strcat(secondFileLine, "|");
 
-      secondColContent = strtok(NULL, "|");
+      secondColContent = strtok(NULL, "|\n");
       colIndex++;
     }
-    if (correctCol)
-      printf("%s\n\n", secondFileLine);
-
+    fprintf(outputFile, "\n");
+    // if (correctCol)
+    //   printf("%s\n\n", secondFileLine);
+    // printf("\n");
+    free(secondFileLine);
     lines = lines->next;
   }
   // g_slist_foreach(g_hash_table_lookup(hashTable, colContent), (GFunc)SaveToFile, colContent);
@@ -71,7 +55,9 @@ void BuildHashTable(GHashTable* hashTable, char* colContent, char* lineContent, 
     // We are at column to hash
     // printf("%s\n", colContent);
     // printf("%s\n", line);
-    /*gboolean test = */g_hash_table_insert(hashTable, strdup(colContent), g_slist_append(g_hash_table_lookup(hashTable, strdup(colContent)), lineContent));
+    // char* newColContent = strdup(colContent);
+    /*gboolean test = */g_hash_table_insert(hashTable, colContent, g_slist_append(g_hash_table_lookup(hashTable, colContent), lineContent));
+    // free(newColContent);
     // if (!test) {
     //   printf("Collision\n");
     // }
@@ -91,10 +77,13 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
     exit(EXIT_FAILURE);
   }
 
+  char* lineContent;
+  char* newColContent;
+
   while (getline(&line, &len, file) != -1)
   {
     // printf("%s\n", line);
-    char* lineContent = strdup(line);
+    lineContent = strdup(line);
     char *colContent = strtok(line, "|");
     for (int i = 1; i <= hashColumn; i++)
     {
@@ -105,23 +94,43 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
         exit(EXIT_FAILURE);
       }
     }
-    (*action)(hashTable, colContent, lineContent, hashColumn);
+    newColContent = strdup(colContent);
+    (*action)(hashTable, newColContent, lineContent, hashColumn);
   }
 
     free(line);
+    free(lineContent);
+    free(newColContent);
     fclose(file);
 }
 
 
 int main( int argc, char *argv[] )
 {
-  //TODO: use argv to get file names
-  char* file1Name = "2.17.3/ref_data/1/customer.tbl.1";
-  char* file2Name = "2.17.3/ref_data/1/customer.tbl.499";
+  char* file1Name;
+  char* file2Name;
+//Use argv to get file names
+  for (size_t i = 0; i < argc; i++) {
+    if (strcmp(argv[i], "--in1") == 0) {
+      file1Name = argv[i + 1];
+    } else if (strcmp(argv[i], "--in2") == 0) {
+      file2Name = argv[i + 1];
+    } else if (strcmp(argv[i], "--out") == 0) {
+      outputFileName = argv[i + 1];
+    }
+  }
+  // char* file1Name = "2.17.3/ref_data/1/customer.tbl.1";
+  // char* file2Name = "2.17.3/ref_data/1/customer.tbl.499";
+  // outputFileName = "output.tbl";
   GHashTable *hashTable = g_hash_table_new(g_str_hash, g_str_equal);
   ReadLines(hashTable, file2Name, 3, BuildHashTable);
   //Add stuff to write to file instead
+  outputFile = fopen(outputFileName, "wb");
   ReadLines(hashTable, file1Name, 3, SearchHashTable);
+  fclose(outputFile);
+
+  g_hash_table_foreach(hashTable, destroy, NULL);
+  g_hash_table_destroy(hashTable);
 
   // g_hash_table_foreach(hashTable, print, NULL);
   // g_print("Hello %s\n", g_ptr_array_index(lines,0));
