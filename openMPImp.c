@@ -1,6 +1,6 @@
 // #include "mpi.h"
 #define _GNU_SOURCE
-#define NUM_THREADS 1
+#define NUM_THREADS 2
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,8 +35,6 @@ void SearchHashTable(GHashTable* hashTable, char* colContent, char* lineContent,
       {
         fprintf(outputFile, "%s|", secondColContent);
       }
-
-
       secondColContent = strtok(NULL, "|\n");
       colIndex++;
     }
@@ -68,38 +66,43 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
   char* lineContent;
   char* newColContent;
 
-  GPtrArray *fileLines = g_ptr_array_new(void)
+  GPtrArray *fileLines = g_ptr_array_new();
 
   while (getline(&line, &len, file) != -1)
   {
-    g_ptr_array_add(fileLines, strdup(line))
+    g_ptr_array_add(fileLines, strdup(line));
   }
 
-  #pragma omp parallel shared(fileLines) private(lineContent,newColContent)
-  #pragma opm for
-  for(int i = 0; i < fileLines->len;i++)
-  {
-    lineContent = g_ptr_array_index(fileLines,i);
-    char* fileLine = strdup(g_ptr_array_index(fileLines,i));
-    char *colContent = strtok(fileLine, "|");
-    for (int i = 1; i <= hashColumn; i++)
+  char* fileLine;
+  char* colContent;
+  int i;
+  int j;
+  int length = fileLines->len;
+
+  #pragma omp parallel for shared(fileLines, length, i, hashColumn) private(lineContent,newColContent, fileLine, colContent, j)
+    for(i = 0; i < length;i++)
     {
-      colContent = strtok(NULL, "|");
-      if (colContent == NULL || strcmp(colContent, "\n") == 0)
+      lineContent = g_ptr_array_index(fileLines,i);
+      fileLine = strdup(g_ptr_array_index(fileLines,i));
+      colContent = strtok(fileLine, "|");
+      for (j = 1; j <= hashColumn; j++)
       {
-        fprintf(stderr, "Error: Column %i out of range\n", hashColumn);
-        exit(EXIT_FAILURE);
+        colContent = strtok(NULL, "|");
+        if (colContent == NULL || strcmp(colContent, "\n") == 0)
+        {
+          fprintf(stderr, "Error: Column %i out of range\n", hashColumn);
+          exit(EXIT_FAILURE);
+        }
       }
+      newColContent = strdup(colContent);
+      (*action)(hashTable, newColContent, lineContent, hashColumn);
     }
-    newColContent = strdup(colContent);
-    (*action)(hashTable, newColContent, lineContent, hashColumn);
-  }
 
 
-    g_ptr_array_free(fileLines,TRUE)
+    g_ptr_array_free(fileLines,TRUE);
     free(line);
-    free(lineContent);
-    free(newColContent);
+    // free(lineContent);
+    // free(newColContent);
     fclose(file);
 }
 
@@ -124,6 +127,7 @@ int main( int argc, char *argv[] )
   ReadLines(hashTable, file2Name, 3, BuildHashTable);
 
   outputFile = fopen(outputFileName, "wb");
+  // SearchHashTable(hashTable, "|1|", "49805|Customer#000049805| m,OiXCV1j0ua|15|25-607-134-2554|7363.01|HOUSEHOLD|ding requests engage permanently across the fluffily even excuses. ironic, even packages solve along the fluff|", 3);
   ReadLines(hashTable, file1Name, 3, SearchHashTable);
   fclose(outputFile);
 
