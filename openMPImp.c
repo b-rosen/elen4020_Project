@@ -1,5 +1,6 @@
 // #include "mpi.h"
 #define _GNU_SOURCE
+#define NUM_THREADS 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,13 +74,14 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
   {
     g_ptr_array_add(fileLines, strdup(line))
   }
-  
+
   #pragma omp parallel shared(fileLines) private(lineContent,newColContent)
   #pragma opm for
   for(int i = 0; i < fileLines->len;i++)
   {
     lineContent = g_ptr_array_index(fileLines,i);
-    char *colContent = strtok(line, "|");
+    char* fileLine = strdup(g_ptr_array_index(fileLines,i));
+    char *colContent = strtok(fileLine, "|");
     for (int i = 1; i <= hashColumn; i++)
     {
       colContent = strtok(NULL, "|");
@@ -104,6 +106,7 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
 
 int main( int argc, char *argv[] )
 {
+  omp_set_num_threads(NUM_THREADS);
   char* file1Name;
   char* file2Name;
 
