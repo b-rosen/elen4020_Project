@@ -63,13 +63,18 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
   int fileLength = fileLines->len;
   GSList *lines;
   char* currentLine;
+  char* currentLineStrip;
+  char* hashValueLine;
+  char* hashValueContent;
+  int colIndex;
   char* tempLine;
 
-  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength, outFileLines) private(workingLine, currentColumnVal, i, j, k, lines, tempLine, currentLine)
+  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength, outFileLines) private(workingLine, currentColumnVal, i, j, k, lines, tempLine, currentLine, currentLineStrip, hashValueLine, hashValueContent, colIndex)
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
     currentColumnVal = strtok_r(workingLine, "|", &workingLine);
+
     for(j = 1; j <= hashColumn; j++)
     {
       if(currentColumnVal == NULL || strcmp(currentColumnVal, "\n") == 0)
@@ -90,7 +95,24 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
       while(lines != NULL)
       {
         currentLine = strdup(g_ptr_array_index(fileLines,i));
-        tempLine = strtok_r(currentLine, "\n", &currentLine);
+        currentLineStrip = strtok_r(currentLine,"\n",&currentLine);
+        tempLine = (char *) malloc(strlen(workingLine)*3);
+        strcpy(tempLine,currentLineStrip);
+        hashValueLine = strdup(lines->data);
+        hashValueContent = strtok_r(hashValueLine,"\n",&hashValueLine);
+        colIndex = 1;
+
+        while(hashValueContent != NULL)
+        {
+          if (colIndex != hashColumn)
+          {
+            strcat(tempLine,"|");
+            strcat(tempLine, hashValueContent);
+          }
+          hashValueContent = strtok_r(NULL,"|",&hashValueLine);
+          colIndex++;
+        }
+        
         g_ptr_array_add(outFileLines[omp_get_thread_num()], tempLine);
         lines = lines->next;
       }
