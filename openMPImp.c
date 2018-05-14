@@ -79,7 +79,7 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
   int j;
   int length = fileLines->len;
 
-  #pragma omp parallel for shared(fileLines, length, i, hashColumn) private(lineContent,newColContent, fileLine, colContent, j)
+  #pragma omp parallel for shared(fileLines, length, hashColumn) private(i,lineContent,newColContent, fileLine, colContent, j)
     for(i = 0; i < length;i++)
     {
       lineContent = g_ptr_array_index(fileLines,i);
