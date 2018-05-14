@@ -124,6 +124,7 @@ int main( int argc, char *argv[] )
   // outputFileName = "output.tbl";
   GHashTable *hashTable = g_hash_table_new(g_str_hash, g_str_equal);
   ReadLines(hashTable, file2Name, 3, BuildHashTable);
+  printf("%d\n", g_hash_table_size(hashTable));
   //Add stuff to write to file instead
   outputFile = fopen(outputFileName, "wb");
   ReadLines(hashTable, file1Name, 3, SearchHashTable);
