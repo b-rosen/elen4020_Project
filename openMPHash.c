@@ -153,7 +153,8 @@ GPtrArray *hashTables = g_ptr_array_new();
   GPtrArray *outFileLines;
   for(int i = 0; i < NUM_THREADS; i++)
   {
-    g_ptr_array_add(outFileLines, g_ptr_array_new());
+    GPtrArray *temp = g_ptr_array_new();
+    g_ptr_array_add(outFileLines, temp);
   }
 
   createTable(file2Lines, hashTables, outFileLines, 3);
