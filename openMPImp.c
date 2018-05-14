@@ -86,6 +86,7 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
   int i;
   int j;
   int length = fileLines->len;
+  
 
   #pragma omp parallel for shared(fileLines, length, hashColumn, hashTable) private(i,newColContent, fileLine, colContent, j)
     for(i = 0; i < length;i++)

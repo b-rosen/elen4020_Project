@@ -85,6 +85,7 @@ void createTable(GPtrArray* fileLines, GHashTable** hashTables, GPtrArray** outF
     for(k = 0; k < NUM_THREADS; k++)
     {
       lines = g_hash_table_lookup(hashTables[k], columnVal);
+      printf("%s\n", lines);
       if(lines == NULL)
       {
         continue;

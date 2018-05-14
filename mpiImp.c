@@ -182,7 +182,7 @@ GHashTable* BuildHashTable(GPtrArray* lineBuffer, int hashColumn)
 
     g_hash_table_insert(hashTable, colContent, g_slist_append(g_hash_table_lookup(hashTable, colContent), fileLineContent));
 
-    free(fileLineCopy);
+    // free(fileLineCopy);
   }
   free(fileLineContent);
   return hashTable;
