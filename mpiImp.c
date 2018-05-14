@@ -1,5 +1,6 @@
 // #include "mpi.h"
 #define _GNU_SOURCE
+#define NEW_LINE 12
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -188,6 +189,28 @@ GHashTable* BuildHashTable(GPtrArray* lineBuffer, int hashColumn)
   return hashTable;
 }
 
+GArray* ScanFile(char* fileName)
+{
+  FILE *file = fopen(fileName, "wb");
+
+  GArray* lineLengths = g_array_new(FALSE, FALSE, sizeof(int));
+  int c;
+  int charCount = 0;
+
+  while(c != EOF)
+  {
+    while(c != NEW_LINE)
+    {
+      c = fgetc(file);
+      charCount++;
+    }
+    g_array_append_val(lineLengths, charCount);
+    charCount = 0;
+  }
+  fclose(file);
+  return lineLengths;
+}
+
 GPtrArray* ReadFile(char* fileName)
 {
   FILE *file;
@@ -221,18 +244,21 @@ int main( int argc, char *argv[] )
   // MPI_Init(&argc, &argv);
   // MPI_Comm_size(MPI_COMM_WORLD, &size);
   // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  char* file1_Name;
-  char* file2_Name;
+  char* file1_name;
+  char* file2_name;
 
   for (size_t i = 0; i < argc; i++) {
     if (strcmp(argv[i], "--in1") == 0) {
-      file1_Name = argv[i + 1];
+      file1_name = argv[i + 1];
     } else if (strcmp(argv[i], "--in2") == 0) {
-      file2_Name = argv[i + 1];
+      file2_name = argv[i + 1];
     } else if (strcmp(argv[i], "--out") == 0) {
       outputFileName = argv[i + 1];
     }
   }
+
+  GArray *file1_info = ScanFile(file1_name);
+  printf("%i\n", file1_info->len);
 
   // GHashTable *hashTable = g_hash_table_new(g_str_hash, g_str_equal);
   // ReadLines(hashTable, file2Name, 3, BuildHashTable);
@@ -246,10 +272,10 @@ int main( int argc, char *argv[] )
   //
 
   int hashColumn = 3;
-  GPtrArray *file2_lines = ReadFile(file2_Name);
+  GPtrArray *file2_lines = ReadFile(file2_name);
   GHashTable *file2_HashTable = BuildHashTable(file2_lines, hashColumn);
 
-  GPtrArray *file1_lines = ReadFile(file1_Name);
+  GPtrArray *file1_lines = ReadFile(file1_name);
   PrintLikeEntries(outputFileName, file2_HashTable, file1_lines, hashColumn);
 
   g_ptr_array_free(file1_lines, TRUE);
