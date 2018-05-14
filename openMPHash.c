@@ -51,6 +51,7 @@ void createHash (GPtrArray* fileLines, GHashTable** hashTables, int hashColumn)
       currentColumnVal = strtok(NULL, "|");
     }
     g_hash_table_insert(hashTables[omp_get_thread_num()], columnVal, g_slist_append(g_hash_table_lookup(hashTables[omp_get_thread_num()], columnVal), strdup(g_ptr_array_index(fileLines,i))));
+
   }
 }
 
