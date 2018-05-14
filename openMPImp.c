@@ -1,6 +1,6 @@
 // #include "mpi.h"
 #define _GNU_SOURCE
-#define NUM_THREADS 2
+#define NUM_THREADS 1
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,6 +95,7 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
         }
       }
       newColContent = strdup(colContent);
+      #pragma omp critical
       (*action)(hashTable, newColContent, lineContent, hashColumn);
     }
 

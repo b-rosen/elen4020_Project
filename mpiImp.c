@@ -9,6 +9,8 @@
 char *outputFileName;
 FILE *outputFile;
 
+int size, rank;
+
 void destroy(gpointer key, gpointer value, gpointer data) {
  g_slist_free(value);
 }
@@ -66,32 +68,39 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
   char* newColContent;
 
   GPtrArray *fileLines = g_ptr_array_new();
+  GArray lineLengths = g_arraw_new();
 
   while (getline(&line, &len, file) != -1)
   {
     g_ptr_array_add(fileLines, strdup(line));
+    g_array_add(fileLines, len);
   }
 
-  char* fileLine;
-  char* colContent;
-
-  for(int i = 0; i < fileLines->len;i++)
+  // MPI stuff
+  if (rank == 0)
   {
-    lineContent = g_ptr_array_index(fileLines,i);
-    fileLine = strdup(g_ptr_array_index(fileLines,i));
-    colContent = strtok(fileLine, "|");
-    for (int j = 1; j <= hashColumn; j++)
-    {
-      colContent = strtok(NULL, "|");
-      if (colContent == NULL || strcmp(colContent, "\n") == 0)
-      {
-        fprintf(stderr, "Error: Column %i out of range\n", hashColumn);
-        exit(EXIT_FAILURE);
-      }
-    }
-    newColContent = strdup(colContent);
-    (*action)(hashTable, newColContent, lineContent, hashColumn);
+    MPI_Scatter(fileLines, )
   }
+  // char* fileLine;
+  // char* colContent;
+  //
+  // for(int i = 0; i < fileLines->len;i++)
+  // {
+  //   lineContent = g_ptr_array_index(fileLines,i);
+  //   fileLine = strdup(g_ptr_array_index(fileLines,i));
+  //   colContent = strtok(fileLine, "|");
+  //   for (int j = 1; j <= hashColumn; j++)
+  //   {
+  //     colContent = strtok(NULL, "|");
+  //     if (colContent == NULL || strcmp(colContent, "\n") == 0)
+  //     {
+  //       fprintf(stderr, "Error: Column %i out of range\n", hashColumn);
+  //       exit(EXIT_FAILURE);
+  //     }
+  //   }
+  //   newColContent = strdup(colContent);
+  //   (*action)(hashTable, newColContent, lineContent, hashColumn);
+  // }
 
 
     g_ptr_array_free(fileLines,TRUE);
@@ -105,7 +114,6 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
 int main( int argc, char *argv[] )
 {
   MPI_Init(&argc, &argv);
-  int size, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   char* file1Name;
