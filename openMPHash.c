@@ -31,11 +31,10 @@ void createHash (GPtrArray* fileLines, GPtrArray* hashTables, int hashColumn)
   int i;
   int j;
   char* workingLine;
-  char* columnVal;
   char* currentColumnVal;
   int fileLength = fileLines->len;
 
-  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength) private(workingLine, columnVal, currentColumnVal, i, j)
+  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength) private(workingLine, currentColumnVal, i, j)
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
@@ -47,10 +46,9 @@ void createHash (GPtrArray* fileLines, GPtrArray* hashTables, int hashColumn)
         fprintf(stderr, "Error: Column %i out of range\n", hashColumn);
         exit(EXIT_FAILURE);
       }
-      columnVal = strdup(currentColumnVal);
       currentColumnVal = strtok_r(NULL, "|", &workingLine);
     }
-    g_hash_table_insert(g_ptr_array_index(hashTables,omp_get_thread_num()), columnVal, g_slist_append(g_hash_table_lookup(g_ptr_array_index(hashTables,omp_get_thread_num()), columnVal), strdup(g_ptr_array_index(fileLines,i))));
+    g_hash_table_insert(g_ptr_array_index(hashTables,omp_get_thread_num()), currentColumnVal, g_slist_append(g_hash_table_lookup(g_ptr_array_index(hashTables,omp_get_thread_num()), currentColumnVal), strdup(g_ptr_array_index(fileLines,i))));
 
   }
 }
@@ -61,14 +59,13 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
   int j;
   int k;
   char* workingLine;
-  char* columnVal;
   char* currentColumnVal;
   int fileLength = fileLines->len;
   GSList *lines;
   char* currentLine;
   char* tempLine;
 
-  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength, outFileLines) private(workingLine, columnVal, currentColumnVal, i, j, k, lines, tempLine, currentLine)
+  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength, outFileLines) private(workingLine, currentColumnVal, i, j, k, lines, tempLine, currentLine)
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
@@ -80,12 +77,11 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
         fprintf(stderr, "Error: Column %i out of range\n", hashColumn);
         exit(EXIT_FAILURE);
       }
-      columnVal = strdup(currentColumnVal);
       currentColumnVal = strtok_r(NULL, "|", &workingLine);
     }
     for(k = 0; k < NUM_THREADS; k++)
     {
-      lines = g_hash_table_lookup(g_ptr_array_index(hashTables,omp_get_thread_num()), columnVal);
+      lines = g_hash_table_lookup(g_ptr_array_index(hashTables,omp_get_thread_num()), currentColumnVal);
       if(lines == NULL)
       {
         continue;
@@ -99,7 +95,6 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
         lines = lines->next;
       }
     }
-
   }
 }
 
@@ -143,9 +138,7 @@ GPtrArray *hashTables = g_ptr_array_new();
   {
     g_ptr_array_add(hashTables, g_hash_table_new(g_str_hash, g_str_equal));
   }
-
-  createHash(file1Lines,hashTables,3);
-  g_ptr_array_free(file1Lines,TRUE);
+  createHash(file1Lines,hashTables,3);  g_ptr_array_free(file1Lines,TRUE);
 
   GPtrArray *file2Lines = g_ptr_array_new();
   readFile(file2Name,file2Lines);
@@ -158,7 +151,6 @@ GPtrArray *hashTables = g_ptr_array_new();
 
   createTable(file2Lines, hashTables, outFileLines, 3);
   g_ptr_array_free(file2Lines,TRUE);
-
   for(int i = 0; i < NUM_THREADS; i++)
   {
     g_hash_table_destroy(g_ptr_array_index(hashTables,i));
