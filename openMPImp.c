@@ -97,10 +97,7 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
         }
       }
       newColContent = strdup(colContent);
-<<<<<<< HEAD
-=======
-      
->>>>>>> 21e6856e57fa14f8828242b8023f8b7f69077860
+
       #pragma omp critical
       (*action)(hashTable, newColContent, lineContent, hashColumn);
     }
