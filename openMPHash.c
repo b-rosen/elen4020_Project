@@ -26,7 +26,7 @@ void readFile(char* fileName, GPtrArray* fileLines)
   free(line);
 }
 
-void createHash (GPtrArray* fileLines, GHashTable** hashTables, int hashColumn)
+void createHash (GPtrArray* fileLines, GPtrArray* hashTables, int hashColumn)
 {
   int i;
   int j;
@@ -50,12 +50,12 @@ void createHash (GPtrArray* fileLines, GHashTable** hashTables, int hashColumn)
       columnVal = strdup(currentColumnVal);
       currentColumnVal = strtok(NULL, "|");
     }
-    g_hash_table_insert(hashTables[omp_get_thread_num()], columnVal, g_slist_append(g_hash_table_lookup(hashTables[omp_get_thread_num()], columnVal), strdup(g_ptr_array_index(fileLines,i))));
+    g_hash_table_insert(g_ptr_array_index(hashTables,omp_get_thread_num()), columnVal, g_slist_append(g_hash_table_lookup(g_ptr_array_index(hashTables,omp_get_thread_num()), columnVal), strdup(g_ptr_array_index(fileLines,i))));
 
   }
 }
 
-void createTable(GPtrArray* fileLines, GHashTable** hashTables, GPtrArray** outFileLines, int hashColumn)
+void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray* outFileLines, int hashColumn)
 {
   int i;
   int j;
@@ -68,7 +68,7 @@ void createTable(GPtrArray* fileLines, GHashTable** hashTables, GPtrArray** outF
   char* currentLine;
   char* tempLine;
 
-  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength) private(workingLine, columnVal, currentColumnVal, i, j, k, lines, tempLine, currentLine)
+  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength, outFileLines) private(workingLine, columnVal, currentColumnVal, i, j, k, lines, tempLine, currentLine)
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
@@ -85,7 +85,7 @@ void createTable(GPtrArray* fileLines, GHashTable** hashTables, GPtrArray** outF
     }
     for(k = 0; k < NUM_THREADS; k++)
     {
-      lines = g_hash_table_lookup(hashTables[k], columnVal);
+      lines = g_hash_table_lookup(g_ptr_array_index(hashTables,omp_get_thread_num()), columnVal);
       if(lines == NULL)
       {
         continue;
@@ -95,7 +95,7 @@ void createTable(GPtrArray* fileLines, GHashTable** hashTables, GPtrArray** outF
       {
         currentLine = strdup(g_ptr_array_index(fileLines,i));
         tempLine = strtok(currentLine, "\n");
-        g_ptr_array_add(outFileLines[omp_get_thread_num()], tempLine);
+        g_ptr_array_add(g_ptr_array_index(outFileLines,omp_get_thread_num()), tempLine);
         lines = lines->next;
       }
     }
@@ -103,14 +103,16 @@ void createTable(GPtrArray* fileLines, GHashTable** hashTables, GPtrArray** outF
   }
 }
 
-void printOutput(GPtrArray** outFileLines, char* fileName)
+void printOutput(GPtrArray* outFileLines, char* fileName)
 {
   FILE *outputFile = fopen(fileName, "wb");
   for(int i = 0; i < NUM_THREADS; i++)
   {
-    for(int j = 0; j < outFileLines[i]->len; j++)
+    GPtrArray *temp = g_ptr_array_index(outFileLines,i);
+    int size = temp->len;
+    for(int j = 0; j < size; j++)
     {
-      fprintf(outputFile, g_ptr_array_index(outFileLines[i],j));
+      fprintf(outputFile, "%s", g_ptr_array_index(temp,j));
     }
   }
   fclose(outputFile);
@@ -136,32 +138,39 @@ int main( int argc, char *argv[] )
   GPtrArray *file1Lines = g_ptr_array_new();
   readFile(file1Name,file1Lines);
 
-  GHashTable *hashTable[NUM_THREADS];
+GPtrArray *hashTables = g_ptr_array_new();
   for(int i = 0; i < NUM_THREADS; i++)
   {
-    hashTable[i] = g_hash_table_new(g_str_hash, g_str_equal);
+    g_ptr_array_add(hashTables, g_hash_table_new(g_str_hash, g_str_equal));
   }
 
-  createHash(file1Lines,hashTable,3);
+  createHash(file1Lines,hashTables,3);
   g_ptr_array_free(file1Lines,TRUE);
 
   GPtrArray *file2Lines = g_ptr_array_new();
   readFile(file2Name,file2Lines);
 
-  GPtrArray *outFileLines[NUM_THREADS];
+  GPtrArray *outFileLines;
   for(int i = 0; i < NUM_THREADS; i++)
   {
-    outFileLines[i] = g_ptr_array_new();
+    g_ptr_array_add(outFileLines, g_ptr_array_new());
   }
 
-  createTable(file2Lines, hashTable, outFileLines, 3);
+  createTable(file2Lines, hashTables, outFileLines, 3);
   g_ptr_array_free(file2Lines,TRUE);
+
+  for(int i = 0; i < NUM_THREADS; i++)
+  {
+    g_hash_table_destroy(g_ptr_array_index(hashTables,i));
+  }
+  g_ptr_array_free(hashTables,FALSE);
 
   printOutput(outFileLines,outputFileName);
   for(int i = 0; i < NUM_THREADS; i++)
   {
-    g_ptr_array_free(outFileLines[i],TRUE);
+    g_ptr_array_free(g_ptr_array_index(outFileLines,i),TRUE);
   }
+  g_ptr_array_free(outFileLines,FALSE);
 
 
   return 0;
