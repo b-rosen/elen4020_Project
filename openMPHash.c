@@ -150,18 +150,10 @@ GPtrArray *hashTables = g_ptr_array_new();
   GPtrArray *file2Lines = g_ptr_array_new();
   readFile(file2Name,file2Lines);
 
-<<<<<<< HEAD
-  GPtrArray *outFileLines;
-  GPtrArray* threadArrays[NUM_THREADS];
-  for(int i = 0; i < NUM_THREADS; i++)
-  {
-    threadArrays[i] = g_ptr_array_new();
-=======
   GPtrArray *outFileLines[NUM_THREADS];
   for(int i = 0; i < NUM_THREADS; i++)
   {
     outFileLines[i] = g_ptr_array_new();
->>>>>>> f977f7281506c84294b8f5737a89966f45987ce0
   }
 
   createTable(file2Lines, hashTables, outFileLines, 3);
@@ -173,20 +165,11 @@ GPtrArray *hashTables = g_ptr_array_new();
   }
   g_ptr_array_free(hashTables,FALSE);
 
-<<<<<<< HEAD
-  // printOutput(outFileLines,outputFileName);
-  // for(int i = 0; i < NUM_THREADS; i++)
-  // {
-  //   g_ptr_array_free(g_ptr_array_index(outFileLines,i),TRUE);
-  // }
-  // g_ptr_array_free(outFileLines,FALSE);
-=======
   printOutput(outFileLines,outputFileName);
   for(int i = 0; i < NUM_THREADS; i++)
   {
     g_ptr_array_free(outFileLines[i],TRUE);
   }
->>>>>>> f977f7281506c84294b8f5737a89966f45987ce0
 
 
   return 0;
