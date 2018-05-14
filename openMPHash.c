@@ -39,7 +39,7 @@ void createHash (GPtrArray* fileLines, GPtrArray* hashTables, int hashColumn)
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
-    currentColumnVal = strtok_r(workingLine, "|");
+    currentColumnVal = strtok_r(workingLine, "|", &workingLine);
     for(j = 1; j <= hashColumn; j++)
     {
       if(currentColumnVal == NULL || strcmp(currentColumnVal, "\n") == 0)
@@ -48,7 +48,7 @@ void createHash (GPtrArray* fileLines, GPtrArray* hashTables, int hashColumn)
         exit(EXIT_FAILURE);
       }
       columnVal = strdup(currentColumnVal);
-      currentColumnVal = strtok_r(NULL, "|");
+      currentColumnVal = strtok_r(NULL, "|", &workingLine);
     }
     g_hash_table_insert(g_ptr_array_index(hashTables,omp_get_thread_num()), columnVal, g_slist_append(g_hash_table_lookup(g_ptr_array_index(hashTables,omp_get_thread_num()), columnVal), strdup(g_ptr_array_index(fileLines,i))));
 
@@ -72,7 +72,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray* outFile
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
-    currentColumnVal = strtok_r(workingLine, "|");
+    currentColumnVal = strtok_r(workingLine, "|", &workingLine);
     for(j = 1; j <= hashColumn; j++)
     {
       if(currentColumnVal == NULL || strcmp(currentColumnVal, "\n") == 0)
@@ -81,7 +81,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray* outFile
         exit(EXIT_FAILURE);
       }
       columnVal = strdup(currentColumnVal);
-      currentColumnVal = strtok_r(NULL, "|");
+      currentColumnVal = strtok_r(NULL, "|", &workingLine);
     }
     for(k = 0; k < NUM_THREADS; k++)
     {
@@ -94,7 +94,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray* outFile
       while(lines != NULL)
       {
         currentLine = strdup(g_ptr_array_index(fileLines,i));
-        tempLine = strtok_r(currentLine, "\n");
+        tempLine = strtok_r(currentLine, "\n", &currentLine);
         g_ptr_array_add(g_ptr_array_index(outFileLines,omp_get_thread_num()), tempLine);
         lines = lines->next;
       }
