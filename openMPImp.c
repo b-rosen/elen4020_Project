@@ -73,13 +73,15 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
     g_ptr_array_add(fileLines, strdup(line));
   }
 
+  free(line);
+
   char* fileLine;
   char* colContent;
   int i;
   int j;
   int length = fileLines->len;
 
-  #pragma omp parallel for shared(fileLines, length, hashColumn) private(i,lineContent,newColContent, fileLine, colContent, j)
+  #pragma omp parallel for shared(fileLines, length, hashColumn, hashTable) private(i,lineContent,newColContent, fileLine, colContent, j)
     for(i = 0; i < length;i++)
     {
       lineContent = g_ptr_array_index(fileLines,i);
@@ -95,14 +97,15 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
         }
       }
       newColContent = strdup(colContent);
+      
+      #pragma omp critical
       (*action)(hashTable, newColContent, lineContent, hashColumn);
     }
 
 
     g_ptr_array_free(fileLines,TRUE);
-    free(line);
-    // free(lineContent);
-    // free(newColContent);
+    free(fileLine);
+    free(newColContent);
     fclose(file);
 }
 
