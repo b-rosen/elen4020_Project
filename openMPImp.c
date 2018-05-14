@@ -1,6 +1,6 @@
 // #include "mpi.h"
 #define _GNU_SOURCE
-#define NUM_THREADS 2
+#define NUM_THREADS 30
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +9,8 @@
 
 char *outputFileName;
 FILE *outputFile;
+
+void destroyLine(gpointer value) { free(value); }
 
 void destroy(gpointer key, gpointer value, gpointer data) {
  g_slist_free(value);
@@ -63,15 +65,21 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
     exit(EXIT_FAILURE);
   }
 
-  char* lineContent;
   char* newColContent;
 
-  GPtrArray *fileLines = g_ptr_array_new();
+  GPtrArray *fileLines = g_ptr_array_new_with_free_func((GDestroyNotify)destroyLine);
 
   while (getline(&line, &len, file) != -1)
   {
     g_ptr_array_add(fileLines, strdup(line));
+    if (len < 10) {
+      printf("%s\n", line);
+    }
   }
+
+  fclose(file);
+
+  free(line);
 
   char* fileLine;
   char* colContent;
@@ -79,10 +87,9 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
   int j;
   int length = fileLines->len;
 
-  #pragma omp parallel for shared(fileLines, length, i, hashColumn) private(lineContent,newColContent, fileLine, colContent, j)
+  #pragma omp parallel for shared(fileLines, length, hashColumn, hashTable) private(i,newColContent, fileLine, colContent, j)
     for(i = 0; i < length;i++)
     {
-      lineContent = g_ptr_array_index(fileLines,i);
       fileLine = strdup(g_ptr_array_index(fileLines,i));
       colContent = strtok(fileLine, "|");
       for (j = 1; j <= hashColumn; j++)
@@ -90,20 +97,23 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
         colContent = strtok(NULL, "|");
         if (colContent == NULL || strcmp(colContent, "\n") == 0)
         {
-          fprintf(stderr, "Error: Column %i out of range\n", hashColumn);
+          printf("%s\n", fileLine);
+          fprintf(stderr, "Error: Column %i out of range. colContent = %s, iteration %i\n", hashColumn, colContent, i);
           exit(EXIT_FAILURE);
         }
       }
       newColContent = strdup(colContent);
-      (*action)(hashTable, newColContent, lineContent, hashColumn);
+
+      #pragma omp critical
+      (*action)(hashTable, newColContent, g_ptr_array_index(fileLines,i), hashColumn);
+
+      free(newColContent);
+      free(fileLine);
     }
 
-
     g_ptr_array_free(fileLines,TRUE);
-    free(line);
-    // free(lineContent);
+    // free(fileLine);
     // free(newColContent);
-    fclose(file);
 }
 
 
