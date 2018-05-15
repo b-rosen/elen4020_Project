@@ -67,41 +67,11 @@ void ReadLines(GHashTable* hashTable, char* fileName, int hashColumn, void (*act
   char* newColContent;
 
   GPtrArray *fileLines = g_ptr_array_new();
-  // GArray lineLengths = g_array_new();
 
   while (getline(&line, &len, file) != -1)
   {
     g_ptr_array_add(fileLines, strdup(line));
-    // g_array_add(fileLines, len);
   }
-
-  // MPI stuff
-  // if (rank == 0)
-  // {
-  //   MPI_Scatter(fileLines, )
-  // }
-
-  // char* fileLine;
-  // char* colContent;
-  //
-  // for(int i = 0; i < fileLines->len;i++)
-  // {
-  //   lineContent = g_ptr_array_index(fileLines,i);
-  //   fileLine = strdup(g_ptr_array_index(fileLines,i));
-  //   colContent = strtok(fileLine, "|");
-  //   for (int j = 1; j <= hashColumn; j++)
-  //   {
-  //     colContent = strtok(NULL, "|");
-  //     if (colContent == NULL || strcmp(colContent, "\n") == 0)
-  //     {
-  //       fprintf(stderr, "Error: Column %i out of range\n", hashColumn);
-  //       exit(EXIT_FAILURE);
-  //     }
-  //   }
-  //   newColContent = strdup(colContent);
-  //   (*action)(hashTable, newColContent, lineContent, hashColumn);
-  // }
-
 
     g_ptr_array_free(fileLines,TRUE);
     free(line);
@@ -181,7 +151,6 @@ GHashTable* BuildHashTable(GPtrArray* lineBuffer, int hashColumn)
 
     g_hash_table_insert(hashTable, colContent, g_slist_append(g_hash_table_lookup(hashTable, colContent), fileLineContent));
 
-    // free(fileLineCopy);
   }
   free(fileLineContent);
   return hashTable;
@@ -202,12 +171,10 @@ GPtrArray* ReadFile(char* fileName)
   }
 
   GPtrArray *fileLines = g_ptr_array_new();
-  // GArray lineLengths = g_array_new();
 
   while (getline(&line, &len, file) != -1)
   {
     g_ptr_array_add(fileLines, strdup(line));
-    // g_array_add(fileLines, len);
   }
 
   fclose(file);
@@ -228,12 +195,6 @@ GPtrArray* ReadChunk(char* chunk)
     g_ptr_array_add(fileLines, strdup(lineContent));
     lineContent = strtok(NULL, "\n");
   }
-
-  // while (getline(&line, &len, file) != -1)
-  // {
-  //   g_ptr_array_add(fileLines, strdup(line));
-  //   // g_array_add(fileLines, len);
-  // }
 
   return fileLines;
 }
@@ -298,9 +259,6 @@ int main( int argc, char *argv[] )
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numNodes);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  //NB: Remove
-  // rank = 0;
-  // numNodes = 2;
 
   char* file1_name;
   char* file2_name;
@@ -327,7 +285,6 @@ int main( int argc, char *argv[] )
     FILE* file2 = fopen(file2_name, "rb");
 
     GArray *file2_lineInfo = ScanFile(file2);
-    // printf("%i\n", g_array_index(file1_lineInfo, int, 0));
     fseek(file2, 0, SEEK_SET);
     int linesPerNode = file2_lineInfo->len / (numNodes - 1);
     int extraLines = file2_lineInfo->len % (numNodes - 1);
@@ -343,6 +300,7 @@ int main( int argc, char *argv[] )
       MPI_Send (&chunk, chunkLen, MPI_CHAR, nodeRank, 0, MPI_COMM_WORLD);
       printf("Sent to: %zu\n", nodeRank);
 
+// NOTE: this should be performed by the other nodes, after receiving the file chunk from the master node
       // // Convert chunk to line array
       // GPtrArray* file2_lines = ReadChunk(chunk);
       // // Convert line array to table
@@ -385,17 +343,9 @@ int main( int argc, char *argv[] )
     free(chunk);
   }
 
-  // GHashTable *hashTable = g_hash_table_new(g_str_hash, g_str_equal);
-  // ReadLines(hashTable, file2Name, 3, BuildHashTable);
-  //
-  // outputFile = fopen(outputFileName, "wb");
-  // // SearchHashTable(hashTable, "|1|", "49805|Customer#000049805| m,OiXCV1j0ua|15|25-607-134-2554|7363.01|HOUSEHOLD|ding requests engage permanently across the fluffily even excuses. ironic, even packages solve along the fluff|", 3);
-  // ReadLines(hashTable, file1Name, 3, SearchHashTable);
-  // fclose(outputFile);
-  //
   MPI_Finalize();
-  //
 
+  // NOTE: this would be used for the serial version of the algorithm
   // int hashColumn = 3;
   // GPtrArray *file2_lines = ReadFile(file2_name);
   // GHashTable *file2_HashTable = BuildHashTable(file2_lines, hashCol2);
