@@ -1,4 +1,4 @@
-#define NUM_THREADS 2
+#define NUM_THREADS 30
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -118,6 +118,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
             else if(strcmp(hashValueContent,currentColumnVal) != 0)
             {
               noClash = FALSE;
+              printf("Clash\n");
             }
           }
 
