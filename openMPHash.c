@@ -1,10 +1,10 @@
-#define NUM_THREADS 30
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
 #include <omp.h>
 
+int NUM_THREADS = 16;
 //This reads in all the lines froma file into an array
 void readFile(char* fileName, GPtrArray* fileLines)
 {
@@ -170,6 +170,7 @@ int main( int argc, char *argv[] )
   char* outputFileName;
   int hashCol1;
   int hashCol2;
+  //gets the file names and columns from args
   for (size_t i = 0; i < argc; i++) {
     if (strcmp(argv[i], "--in1") == 0) {
       file1Name = argv[i + 1];
@@ -181,29 +182,37 @@ int main( int argc, char *argv[] )
       hashCol1 = atoi(argv[i + 1]);
     } else if (strcmp(argv[i], "--hashCol2") == 0) {
       hashCol2 = atoi(argv[i + 1]);
+    } else if (strcmp(argv[i], "--numThreads") == 0) {
+      NUM_THREADS = atoi(argv[i + 1]);
     }
   }
 
+  //read the first file
   GPtrArray *file2Lines = g_ptr_array_new();
   readFile(file2Name,file2Lines);
 
+//create an array of hash tables
 GPtrArray *hashTables = g_ptr_array_new();
   for(int i = 0; i < NUM_THREADS; i++)
   {
     g_ptr_array_add(hashTables, g_hash_table_new(g_str_hash, g_str_equal));
   }
+
+  //fill the hash tables
   createHash(file2Lines,hashTables,hashCol2);
   g_ptr_array_free(file2Lines,TRUE);
 
+  //read the second file
   GPtrArray *file1Lines = g_ptr_array_new();
   readFile(file1Name,file1Lines);
 
+  //create an array of arrays for the output lines
   GPtrArray *outFileLines[NUM_THREADS];
   for(int i = 0; i < NUM_THREADS; i++)
   {
     outFileLines[i] = g_ptr_array_new();
   }
-
+  //fills the output array of arrays
   createTable(file1Lines, hashTables, outFileLines, hashCol1,hashCol2);
   g_ptr_array_free(file1Lines,TRUE);
   for(int i = 0; i < NUM_THREADS; i++)
@@ -212,6 +221,7 @@ GPtrArray *hashTables = g_ptr_array_new();
   }
   g_ptr_array_free(hashTables,FALSE);
 
+  //prints the array of arrays into an output file
   printOutput(outFileLines,outputFileName);
   for(int i = 0; i < NUM_THREADS; i++)
   {
