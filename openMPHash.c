@@ -4,7 +4,8 @@
 #include <glib.h>
 #include <omp.h>
 
-int NUM_THREADS = 16;
+#define NUM_THREADS 1
+
 //This reads in all the lines froma file into an array
 void readFile(char* fileName, GPtrArray* fileLines)
 {
@@ -182,8 +183,6 @@ int main( int argc, char *argv[] )
       hashCol1 = atoi(argv[i + 1]);
     } else if (strcmp(argv[i], "--hashCol2") == 0) {
       hashCol2 = atoi(argv[i + 1]);
-    } else if (strcmp(argv[i], "--numThreads") == 0) {
-      NUM_THREADS = atoi(argv[i + 1]);
     }
   }
 
