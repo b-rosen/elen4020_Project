@@ -200,18 +200,18 @@ GArray* ScanFile(char* fileName)
   }
 
   GArray* lineLengths = g_array_new(FALSE, FALSE, sizeof(int));
-  int c = fgetc(file);
+  int c;
   int charCount = 0;
 
   while(c != EOF)
   {
-    while((c = fgetc(file)) != )
+    while(c != '\n')
     {
       c = fgetc(file);
       charCount++;
-      printf("%i\n", c);
     }
     g_array_append_val(lineLengths, charCount);
+    c = fgetc(file);
     charCount = 0;
   }
 
@@ -266,7 +266,7 @@ int main( int argc, char *argv[] )
   }
 
   GArray *file1_info = ScanFile(file1_name);
-  printf("%i\n", file1_info->len);
+  printf("%i\n", g_array_index(file1_info, int, 0));
 
   // GHashTable *hashTable = g_hash_table_new(g_str_hash, g_str_equal);
   // ReadLines(hashTable, file2Name, 3, BuildHashTable);
