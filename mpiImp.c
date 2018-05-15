@@ -212,11 +212,37 @@ GArray* ScanFile(char* fileName)
     }
     g_array_append_val(lineLengths, charCount);
     c = fgetc(file);
-    charCount = 0;
+    charCount = 1;
   }
 
   fclose(file);
   return lineLengths;
+}
+
+char* GetFileChunk(char* fileName, GArray* linesInfo, int lineStartIndex, int numLines)
+{
+  FILE *file = fopen(fileName, "rb");
+
+  if (file == NULL)
+  {
+    fprintf(stderr, "Error: File %s cannot be found", fileName);
+    exit(EXIT_FAILURE);
+  }
+
+  int totalSize = 0;
+  for (size_t i = lineStartIndex; i < lineStartIndex + numLines; i++)
+  {
+    totalSize += g_array_index(linesInfo, int, i);
+  }
+  char* lineChunk = (char*) malloc(sizeof(char)*totalSize);
+  int actualRead = fread(lineChunk, totalSize, 1, file);
+
+  if (actualRead != 1) {
+    fprintf(stderr, "Error in reading chunk\n");
+  }
+
+  fclose(file);
+  return lineChunk;
 }
 
 GPtrArray* ReadFile(char* fileName)
@@ -266,7 +292,9 @@ int main( int argc, char *argv[] )
   }
 
   GArray *file1_info = ScanFile(file1_name);
-  printf("%i\n", g_array_index(file1_info, int, 0));
+  char* chunk = GetFileChunk(file1_name, file1_info, 0, 2);
+  printf("%s", chunk);
+  free(chunk);
 
   // GHashTable *hashTable = g_hash_table_new(g_str_hash, g_str_equal);
   // ReadLines(hashTable, file2Name, 3, BuildHashTable);
