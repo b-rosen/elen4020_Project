@@ -84,6 +84,10 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
       }
       currentColumnVal = strtok_r(NULL, "|", &workingLine);
     }
+
+    currentLine = strdup(g_ptr_array_index(fileLines,i));
+    currentLineStrip = strtok_r(currentLine,"\n",&currentLine);
+
     for(k = 0; k < NUM_THREADS; k++)
     {
       lines = g_hash_table_lookup(g_ptr_array_index(hashTables,k), currentColumnVal);
@@ -94,10 +98,8 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
 
       while(lines != NULL)
       {
-        currentLine = strdup(g_ptr_array_index(fileLines,i));
-        currentLineStrip = strtok_r(currentLine,"\n",&currentLine);
         hashValueLine = strdup(lines->data);
-        tempLine = (char *) malloc(strlen(workingLine)+strlen(hashValueLine));
+        tempLine = (char *) malloc(strlen(currentLineStrip)+strlen(hashValueLine));
         hashValueContent = strtok_r(hashValueLine,"|",&hashValueLine);
         strcpy(tempLine,currentLineStrip);
         colIndex = 0;
@@ -118,7 +120,6 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
       }
     }
   }
-  free(tempLine);
 }
 
 void printOutput(GPtrArray** outFileLines, char* fileName)
