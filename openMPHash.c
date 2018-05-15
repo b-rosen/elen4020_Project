@@ -4,7 +4,12 @@
 #include <glib.h>
 #include <omp.h>
 
+<<<<<<< HEAD
 #define NUM_THREADS 16
+=======
+#define NUM_THREADS 1
+
+>>>>>>> 7dc4ea35f3c505bb968cb096273e5926a488a6bd
 //This reads in all the lines froma file into an array
 void readFile(char* fileName, GPtrArray* fileLines)
 {
@@ -163,6 +168,7 @@ void printOutput(GPtrArray** outFileLines, char* fileName)
 
 int main( int argc, char *argv[] )
 {
+  int hashColumn;
   omp_set_num_threads(NUM_THREADS);
   char* file1Name;
   char* file2Name;
