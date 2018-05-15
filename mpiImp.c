@@ -214,6 +214,30 @@ GPtrArray* ReadFile(char* fileName)
   return fileLines;
 }
 
+GPtrArray* ReadChunk(char* chunk)
+{
+  gchar *line = NULL;
+  size_t len = 0;
+
+  GPtrArray *fileLines = g_ptr_array_new();
+
+  char *lineContent = strtok(chunk, "\n");
+
+  while (lineContent != NULL)
+  {
+    g_ptr_array_add(fileLines, strdup(lineContent));
+    lineContent = strtok(NULL, "\n");
+  }
+
+  // while (getline(&line, &len, file) != -1)
+  // {
+  //   g_ptr_array_add(fileLines, strdup(line));
+  //   // g_array_add(fileLines, len);
+  // }
+
+  return fileLines;
+}
+
 
 GArray* ScanFile(FILE* file)
 {
@@ -274,6 +298,9 @@ int main( int argc, char *argv[] )
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &numNodes);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  //NB: Remove
+  // rank = 0;
+  // numNodes = 2;
 
   char* file1_name;
   char* file2_name;
@@ -297,30 +324,44 @@ int main( int argc, char *argv[] )
 
   if (rank == MASTER)
   {
-    FILE* file1 = fopen(file1_name, "rb");
+    FILE* file2 = fopen(file2_name, "rb");
 
-    GArray *file1_lineInfo = ScanFile(file1);
+    GArray *file2_lineInfo = ScanFile(file2);
     // printf("%i\n", g_array_index(file1_lineInfo, int, 0));
-    fseek(file1, 0, SEEK_SET);
-    int linesPerNode = file1_lineInfo->len / (numNodes - 1);
-    int extraLines = file1_lineInfo->len % (numNodes - 1);
+    fseek(file2, 0, SEEK_SET);
+    int linesPerNode = file2_lineInfo->len / (numNodes - 1);
+    int extraLines = file2_lineInfo->len % (numNodes - 1);
     char* chunk;
     int linesToRead = linesPerNode;
     int chunkLen;
-    for (size_t nodeRank = 0; nodeRank < numNodes; nodeRank++)
+    for (size_t nodeRank = 1; nodeRank < numNodes; nodeRank++)
     {
       if (nodeRank == numNodes - 1)
         linesToRead += extraLines;
 
-      chunk = GetFileChunk(file1, file1_lineInfo, nodeRank*linesPerNode, linesToRead, &chunkLen);
-      // printf("%i\n", chunkLen);
+      chunk = GetFileChunk(file2, file2_lineInfo, (nodeRank-1)*linesPerNode, linesToRead, &chunkLen);
       MPI_Send (&chunk, chunkLen, MPI_CHAR, nodeRank, 0, MPI_COMM_WORLD);
-      printf("Sent to: %i\n", nodeRank);
+      printf("Sent to: %zu\n", nodeRank);
+
+      // // Convert chunk to line array
+      // GPtrArray* file2_lines = ReadChunk(chunk);
+      // // Convert line array to table
+      // GHashTable* file2_hashTable = BuildHashTable(file2_lines, hashCol2);
+      //
+      // GPtrArray *file1_lines = ReadFile(file1_name);
+      //
+      // PrintLikeEntries(outputFileName, file2_hashTable, file1_lines, hashCol1, hashCol2);
+      //
+      // g_ptr_array_free(file1_lines, TRUE);
+      // g_ptr_array_free(file2_lines, TRUE);
+      //
+      // g_hash_table_foreach(file2_hashTable, destroy, NULL);
+      // g_hash_table_destroy(file2_hashTable);
 
       free(chunk);
     }
 
-    fclose(file1);
+    fclose(file2);
     // char* chunk = GetFileChunk(file1, file1_lineInfo, 0, 2);
     // printf("%s\n", chunk);
     // chunk = GetFileChunk(file1, file1_lineInfo, 2, 2);
@@ -329,7 +370,6 @@ int main( int argc, char *argv[] )
   }
   else
   {
-    printf("%i\n", rank);
     int chunkSize;
     MPI_Status status;
     MPI_Probe(MASTER, 0, MPI_COMM_WORLD, &status);
@@ -358,10 +398,10 @@ int main( int argc, char *argv[] )
 
   // int hashColumn = 3;
   // GPtrArray *file2_lines = ReadFile(file2_name);
-  // GHashTable *file2_HashTable = BuildHashTable(file2_lines, hashColumn);
+  // GHashTable *file2_HashTable = BuildHashTable(file2_lines, hashCol2);
   //
   // GPtrArray *file1_lines = ReadFile(file1_name);
-  // PrintLikeEntries(outputFileName, file2_HashTable, file1_lines, hashColumn);
+  // PrintLikeEntries(outputFileName, file2_HashTable, file1_lines, hashCol1, hashCol2);
   //
   // g_ptr_array_free(file1_lines, TRUE);
   // g_ptr_array_free(file2_lines, TRUE);
