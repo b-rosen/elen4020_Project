@@ -191,22 +191,30 @@ GHashTable* BuildHashTable(GPtrArray* lineBuffer, int hashColumn)
 
 GArray* ScanFile(char* fileName)
 {
-  FILE *file = fopen(fileName, "wb");
+  FILE *file = fopen(fileName, "rb");
+
+  if (file == NULL)
+  {
+    fprintf(stderr, "Error: File %s cannot be found", fileName);
+    exit(EXIT_FAILURE);
+  }
 
   GArray* lineLengths = g_array_new(FALSE, FALSE, sizeof(int));
-  int c;
+  int c = fgetc(file);
   int charCount = 0;
 
   while(c != EOF)
   {
-    while(c != NEW_LINE)
+    while((c = fgetc(file)) != )
     {
       c = fgetc(file);
       charCount++;
+      printf("%i\n", c);
     }
     g_array_append_val(lineLengths, charCount);
     charCount = 0;
   }
+
   fclose(file);
   return lineLengths;
 }
