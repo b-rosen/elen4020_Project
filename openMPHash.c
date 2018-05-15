@@ -5,6 +5,7 @@
 #include <glib.h>
 #include <omp.h>
 
+//This reads in all the lines froma file into an array
 void readFile(char* fileName, GPtrArray* fileLines)
 {
   FILE *file;
@@ -13,11 +14,13 @@ void readFile(char* fileName, GPtrArray* fileLines)
 
   file = fopen(fileName, "rb");
 
+  //exit if file isnt found
   if (file == NULL){
     fprintf(stderr, "Error: File %s cannot be found", fileName);
     exit(EXIT_FAILURE);
   }
 
+  //reads each line and adds it to an array
   while (getline(&line, &len, file) != -1)
   {
     g_ptr_array_add(fileLines, strdup(line));
@@ -26,6 +29,7 @@ void readFile(char* fileName, GPtrArray* fileLines)
   free(line);
 }
 
+//creates an array of hash tables from the input filedata
 void createHash (GPtrArray* fileLines, GPtrArray* hashTables, int hashColumn)
 {
   int i;
@@ -34,11 +38,13 @@ void createHash (GPtrArray* fileLines, GPtrArray* hashTables, int hashColumn)
   char* currentColumnVal;
   int fileLength = fileLines->len;
 
+  //splits this in parallel between all the threads
   #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength) private(workingLine, currentColumnVal, i, j)
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
     currentColumnVal = strtok_r(workingLine, "|", &workingLine);
+    //finds the column to be hashed
     for(j = 1; j <= hashColumn; j++)
     {
       if(currentColumnVal == NULL || strcmp(currentColumnVal, "\n") == 0)
@@ -48,12 +54,14 @@ void createHash (GPtrArray* fileLines, GPtrArray* hashTables, int hashColumn)
       }
       currentColumnVal = strtok_r(NULL, "|", &workingLine);
     }
+    //hashes using the column as the key and puts the line in as the value
     g_hash_table_insert(g_ptr_array_index(hashTables,omp_get_thread_num()), currentColumnVal, g_slist_append(g_hash_table_lookup(g_ptr_array_index(hashTables,omp_get_thread_num()), currentColumnVal), strdup(g_ptr_array_index(fileLines,i))));
 
   }
 }
 
-void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFileLines, int hashColumn)
+//creates the lines for the output file and stores then in an array of arrays.
+void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFileLines, int hashColumn, int hashHashColumn)
 {
   int i;
   int j;
@@ -70,12 +78,12 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
   char* tempLine;
   gboolean noClash;
 
-  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength, outFileLines) private(workingLine, currentColumnVal, i, j, k, lines, tempLine, currentLine, currentLineStrip, hashValueLine, hashValueContent, colIndex, noClash)
+  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, hashHashColumn,fileLength, outFileLines) private(workingLine, currentColumnVal, i, j, k, lines, tempLine, currentLine, currentLineStrip, hashValueLine, hashValueContent, colIndex, noClash)
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
     currentColumnVal = strtok_r(workingLine, "|", &workingLine);
-
+    //finds the column to find the coresponding values in the hash table
     for(j = 1; j <= hashColumn; j++)
     {
       if(currentColumnVal == NULL || strcmp(currentColumnVal, "\n") == 0)
@@ -88,7 +96,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
 
     currentLine = strdup(g_ptr_array_index(fileLines,i));
     currentLineStrip = strtok_r(currentLine,"\n",&currentLine);
-
+    //loops through all the hash tables and looks for the key values
     for(k = 0; k < NUM_THREADS; k++)
     {
       lines = g_hash_table_lookup(g_ptr_array_index(hashTables,k), currentColumnVal);
@@ -97,6 +105,8 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
         continue;
       }
 
+      //creates the lines that will be output by storing the whole file line followed by each column of the hash
+      //tables lines except for the column that is the same
       while(lines != NULL)
       {
         noClash = TRUE;
@@ -110,7 +120,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
         {
           if(strcmp(hashValueContent,"\n") != 0)
           {
-            if (colIndex != hashColumn)
+            if (colIndex != hashHashColumn)
             {
               strcat(tempLine,"|");
               strcat(tempLine, hashValueContent);
@@ -135,6 +145,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
   }
 }
 
+//prints out the array of output line arrays
 void printOutput(GPtrArray** outFileLines, char* fileName)
 {
   FILE *outputFile = fopen(fileName, "wb");
@@ -157,6 +168,8 @@ int main( int argc, char *argv[] )
   char* file1Name;
   char* file2Name;
   char* outputFileName;
+  int hashCol1;
+  int hashCol2;
   for (size_t i = 0; i < argc; i++) {
     if (strcmp(argv[i], "--in1") == 0) {
       file1Name = argv[i + 1];
@@ -164,8 +177,10 @@ int main( int argc, char *argv[] )
       file2Name = argv[i + 1];
     } else if (strcmp(argv[i], "--out") == 0) {
       outputFileName = argv[i + 1];
-    } else if (strcmp(argv[i], "--hashCol") == 0) {
-      hashColumn = atoi(argv[i + 1]);
+    } else if (strcmp(argv[i], "--hashCol1") == 0) {
+      hashCol1 = atoi(argv[i + 1]);
+    } else if (strcmp(argv[i], "--hashCol2") == 0) {
+      hashCol2 = atoi(argv[i + 1]);
     }
   }
 
@@ -177,7 +192,7 @@ GPtrArray *hashTables = g_ptr_array_new();
   {
     g_ptr_array_add(hashTables, g_hash_table_new(g_str_hash, g_str_equal));
   }
-  createHash(file2Lines,hashTables,hashColumn);
+  createHash(file2Lines,hashTables,hashCol2);
   g_ptr_array_free(file2Lines,TRUE);
 
   GPtrArray *file1Lines = g_ptr_array_new();
@@ -189,7 +204,7 @@ GPtrArray *hashTables = g_ptr_array_new();
     outFileLines[i] = g_ptr_array_new();
   }
 
-  createTable(file1Lines, hashTables, outFileLines, hashColumn);
+  createTable(file1Lines, hashTables, outFileLines, hashCol1,hashCol2);
   g_ptr_array_free(file1Lines,TRUE);
   for(int i = 0; i < NUM_THREADS; i++)
   {
