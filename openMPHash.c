@@ -68,8 +68,9 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
   char* hashValueContent;
   int colIndex;
   char* tempLine;
+  gboolean noClash;
 
-  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength, outFileLines) private(workingLine, currentColumnVal, i, j, k, lines, tempLine, currentLine, currentLineStrip, hashValueLine, hashValueContent, colIndex)
+  #pragma omp parallel for shared(fileLines, hashTables, hashColumn, fileLength, outFileLines) private(workingLine, currentColumnVal, i, j, k, lines, tempLine, currentLine, currentLineStrip, hashValueLine, hashValueContent, colIndex, noClash)
   for(i = 0; i < fileLength;i++)
   {
     workingLine = strdup(g_ptr_array_index(fileLines,i));
@@ -98,6 +99,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
 
       while(lines != NULL)
       {
+        noClash = TRUE;
         hashValueLine = strdup(lines->data);
         tempLine = (char *) malloc(strlen(currentLineStrip)+strlen(hashValueLine));
         hashValueContent = strtok_r(hashValueLine,"|",&hashValueLine);
@@ -106,16 +108,25 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
 
         while(hashValueContent != NULL)
         {
-          if (colIndex != hashColumn && strcmp(hashValueContent,"\n") != 0)
+          if(strcmp(hashValueContent,"\n") != 0)
           {
-            strcat(tempLine,"|");
-            strcat(tempLine, hashValueContent);
+            if (colIndex != hashColumn)
+            {
+              strcat(tempLine,"|");
+              strcat(tempLine, hashValueContent);
+            }
+            else if(strcmp(hashValueContent,currentColumnVal) != 0)
+            {
+              noClash = FALSE;
+            }
           }
+
           hashValueContent = strtok_r(NULL,"|",&hashValueLine);
           colIndex++;
         }
         strcat(tempLine, "\n");
-        g_ptr_array_add(outFileLines[omp_get_thread_num()], strdup(tempLine));
+        if(noClash)
+          g_ptr_array_add(outFileLines[omp_get_thread_num()], strdup(tempLine));
         lines = lines->next;
         free(tempLine);
       }
