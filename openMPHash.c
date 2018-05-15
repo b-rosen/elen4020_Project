@@ -152,6 +152,7 @@ void printOutput(GPtrArray** outFileLines, char* fileName)
 
 int main( int argc, char *argv[] )
 {
+  int hashColumn;
   omp_set_num_threads(NUM_THREADS);
   char* file1Name;
   char* file2Name;
@@ -163,6 +164,8 @@ int main( int argc, char *argv[] )
       file2Name = argv[i + 1];
     } else if (strcmp(argv[i], "--out") == 0) {
       outputFileName = argv[i + 1];
+    } else if (strcmp(argv[i], "--hashCol") == 0) {
+      hashColumn = atoi(argv[i + 1]);
     }
   }
 
@@ -174,7 +177,7 @@ GPtrArray *hashTables = g_ptr_array_new();
   {
     g_ptr_array_add(hashTables, g_hash_table_new(g_str_hash, g_str_equal));
   }
-  createHash(file2Lines,hashTables,3);
+  createHash(file2Lines,hashTables,hashColumn);
   g_ptr_array_free(file2Lines,TRUE);
 
   GPtrArray *file1Lines = g_ptr_array_new();
@@ -186,7 +189,7 @@ GPtrArray *hashTables = g_ptr_array_new();
     outFileLines[i] = g_ptr_array_new();
   }
 
-  createTable(file1Lines, hashTables, outFileLines, 3);
+  createTable(file1Lines, hashTables, outFileLines, hashColumn);
   g_ptr_array_free(file1Lines,TRUE);
   for(int i = 0; i < NUM_THREADS; i++)
   {
