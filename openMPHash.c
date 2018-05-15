@@ -115,7 +115,7 @@ void createTable(GPtrArray* fileLines, GPtrArray* hashTables, GPtrArray** outFil
           colIndex++;
         }
         strcat(tempLine, "\n");
-        g_ptr_array_add(outFileLines[omp_get_thread_num()], tempLine);
+        g_ptr_array_add(outFileLines[omp_get_thread_num()], strdup(tempLine));
         lines = lines->next;
         free(tempLine);
       }
